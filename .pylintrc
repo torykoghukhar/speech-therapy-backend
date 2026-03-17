@@ -1,0 +1,12 @@
+[MASTER]
+load-plugins=pylint_django
+django-settings-module=speech_therapy.settings
+ignore=migrations
+
+[MESSAGES CONTROL]
+disable=
+    too-few-public-methods,
+    abstract-method
+
+[FORMAT]
+max-line-length=120

@@ -1,0 +1,43 @@
+<h2>Login</h2>
+
+<form id="loginForm">
+    <input type="email" id="email" placeholder="Email" required><br><br>
+    <input type="password" id="password" placeholder="Password" required><br><br>
+    <button type="submit">Login</button>
+</form>
+
+<p id="error" style="color: red;"></p>
+
+<script>
+document.getElementById("loginForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    const response = await fetch("/api/users/api/login/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            email: email,
+            password: password
+        })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+        localStorage.setItem("access", data.access);
+        localStorage.setItem("refresh", data.refresh);
+
+        alert("Login successful!");
+        console.log(data);
+
+        window.location.href = "/";
+    } else {
+        document.getElementById("error").innerText = "Invalid credentials";
+    }
+});
+</script>
