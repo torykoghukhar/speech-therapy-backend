@@ -2,11 +2,7 @@ name: Backend CI
 
 on:
   push:
-    paths:
-      - "speech_therapy/**"
   pull_request:
-    paths:
-      - "speech_therapy/**"
 
 jobs:
   lint:
@@ -34,3 +30,26 @@ jobs:
 
       - run: |
           flake8 --max-line-length=120 --exclude=migrations,venv speech_therapy
+
+
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      DJANGO_SETTINGS_MODULE: speech_therapy.settings
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - run: |
+          pip install -r requirements.txt
+
+      - run: |
+          python manage.py migrate
+
+      - run: |
+          pytest
