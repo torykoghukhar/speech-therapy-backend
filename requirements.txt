@@ -11,3 +11,7 @@ sqlparse==0.5.5
 typing_extensions==4.15.0
 celery==5.3.6
 redis==5.0.4
+pytest==8.1.1
+pytest-django==4.8.0
+factory-boy==3.3.0
+model-bakery==1.17.0

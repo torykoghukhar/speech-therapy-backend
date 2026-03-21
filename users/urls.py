@@ -24,9 +24,20 @@ urlpatterns = [
         PasswordResetConfirmAPIView.as_view(),
         name="api-password-reset-confirm",
     ),
-    path("children/create/", ChildProfileCreateAPIView.as_view()),
-    path("children/<int:pk>/update/", ChildProfileUpdateAPIView.as_view()),
-    path("children/<int:pk>/delete/", ChildProfileDeleteAPIView.as_view()),
-    path("profile/", UserProfileAPIView.as_view()),
-    path("child/", ChildProfileDetailAPIView.as_view()),
+    path(
+        "children/create/",
+        ChildProfileCreateAPIView.as_view(),
+        name="child-profile-create"
+    ),
+    path(
+        "children/<int:pk>/update/",
+        ChildProfileUpdateAPIView.as_view(),
+        name="child-profile-update"
+    ),
+    path(
+        "children/<int:pk>/delete/",
+        ChildProfileDeleteAPIView.as_view(),
+        name="child-profile-delete"),
+    path("profile/", UserProfileAPIView.as_view(), name="user-profile"),
+    path("child/", ChildProfileDetailAPIView.as_view(), name="child-profile-detail"),
 ]
