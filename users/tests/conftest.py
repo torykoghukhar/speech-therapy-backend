@@ -48,7 +48,7 @@ def create_user():
 
 
 @pytest.fixture
-def auth_client(api_client, user_with_profile): #pylint: disable=redefined-outer-name
+def auth_client(api_client, user_with_profile):  # pylint: disable=redefined-outer-name
     """
     Fixture for an authenticated API client.
     """
@@ -58,7 +58,7 @@ def auth_client(api_client, user_with_profile): #pylint: disable=redefined-outer
 
 
 @pytest.fixture
-def parent_user(create_user): #pylint: disable=redefined-outer-name
+def parent_user(create_user):  # pylint: disable=redefined-outer-name
     """
     Fixture for creating a parent user.
     """
@@ -66,7 +66,7 @@ def parent_user(create_user): #pylint: disable=redefined-outer-name
 
 
 @pytest.fixture
-def therapist_user(create_user): #pylint: disable=redefined-outer-name
+def therapist_user(create_user):  # pylint: disable=redefined-outer-name
     """
     Fixture for creating a speech therapist user.
     """
@@ -74,7 +74,7 @@ def therapist_user(create_user): #pylint: disable=redefined-outer-name
 
 
 @pytest.fixture
-def child_profile(parent_user): #pylint: disable=redefined-outer-name
+def child_profile(parent_user):  # pylint: disable=redefined-outer-name
     """
     Fixture for creating a child profile for a parent user.
     """
@@ -87,7 +87,7 @@ def child_profile(parent_user): #pylint: disable=redefined-outer-name
 
 
 @pytest.fixture
-def user_with_profile(create_user): #pylint: disable=redefined-outer-name
+def user_with_profile(create_user):  # pylint: disable=redefined-outer-name
     """
     Fixture for creating a user with a profile.
     """

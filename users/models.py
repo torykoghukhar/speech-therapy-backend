@@ -3,6 +3,7 @@ Models for user profiles and child profiles in the speech therapy application.
 """
 
 from django.contrib.auth import get_user_model
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -46,6 +47,12 @@ class ChildProfile(models.Model):
     Model representing a child's profile in the speech therapy application.
     """
 
+    DIFFICULTY_LEVELS = [
+        (1, "Easy"),
+        (2, "Medium"),
+        (3, "Hard"),
+    ]
+
     name = models.CharField(max_length=100, blank=True, null=True)
 
     parent = models.ForeignKey(
@@ -65,7 +72,11 @@ class ChildProfile(models.Model):
     )
 
     age = models.PositiveIntegerField()
-    difficulty_level = models.PositiveIntegerField(default=1)
+    difficulty_level = models.PositiveSmallIntegerField(
+        choices=DIFFICULTY_LEVELS,
+        default=1,
+        validators=[MinValueValidator(1), MaxValueValidator(3)],
+    )
 
     def __str__(self):
         return self.name or f"Child of {self.parent.email}"
