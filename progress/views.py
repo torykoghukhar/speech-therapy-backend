@@ -71,7 +71,9 @@ class SubmitExerciseResultAPIView(APIView):
         try:
             analysis = calculate_accuracy_from_audio(
                 audio_file,
-                exercise.word
+                exercise.word,
+                exercise.audio_file.path,
+                exercise.type
             )
             accuracy_score = analysis["accuracy"]
 
