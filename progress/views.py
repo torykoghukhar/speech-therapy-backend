@@ -2,12 +2,15 @@
 API views for managing lesson progress and exercise results.
 """
 
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from exercises.models import Exercise
 from lessons.models import Lesson
+from speech.services import calculate_accuracy_from_audio
 from .models import LessonSession, ExerciseResult
 
 
@@ -42,13 +45,41 @@ class SubmitExerciseResultAPIView(APIView):
         """
         Saves the result of an exercise and determines if it is passed.
         """
+
         session_id = request.data.get("session")
         exercise_id = request.data.get("exercise")
-        accuracy_score = float(request.data.get("accuracy_score"))
 
-        session = LessonSession.objects.get(id=session_id)
-        exercise = Exercise.objects.get(id=exercise_id)
+        if not session_id or not exercise_id:
+            return Response(
+                {"error": "Missing session or exercise"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        session = get_object_or_404(LessonSession, id=session_id)
+        exercise = get_object_or_404(Exercise, id=exercise_id)
+
         child = session.child
+
+        audio_file = request.FILES.get("recorded_audio")
+
+        if not audio_file:
+            return Response(
+                {"error": "Audio file is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            analysis = calculate_accuracy_from_audio(
+                audio_file,
+                exercise.word
+            )
+            accuracy_score = analysis["accuracy"]
+
+        except Exception:  # pylint: disable=broad-except
+            return Response(
+                {"error": "Speech analysis failed"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
         required_score = exercise.passing_score
 
@@ -59,10 +90,10 @@ class SubmitExerciseResultAPIView(APIView):
 
         is_passed = accuracy_score >= required_score
 
-        result = ExerciseResult.objects.create(  # pylint: disable=unused-variable
+        ExerciseResult.objects.create(
             session=session,
             exercise=exercise,
-            recorded_audio=request.data.get("recorded_audio"),
+            recorded_audio=audio_file,
             accuracy_score=accuracy_score,
             is_passed=is_passed,
         )
@@ -70,6 +101,9 @@ class SubmitExerciseResultAPIView(APIView):
         return Response({
             "passed": is_passed,
             "required_score": required_score,
+            "accuracy": analysis["accuracy"],
+            "fluency": analysis["fluency"],
+            "completeness": analysis["completeness"],
         })
 
 

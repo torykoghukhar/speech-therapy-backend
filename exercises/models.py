@@ -10,8 +10,14 @@ class Exercise(models.Model):
     Represents a single speech exercise (word/sound).
     """
 
+    TYPE_CHOICES = [
+        ("word", "Word"),
+        ("sound", "Sound"),
+    ]
+
     title = models.CharField(max_length=255)
     word = models.CharField(max_length=255)
+    type = models.CharField(max_length=10, choices=TYPE_CHOICES, default="word")
 
     image = models.ImageField(upload_to="exercises/images/")
     audio_file = models.FileField(upload_to="exercises/audio/")
