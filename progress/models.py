@@ -7,6 +7,7 @@ from exercises.models import Exercise
 from lessons.models import Lesson
 from users.models import ChildProfile
 
+
 class LessonSession(models.Model):
     """
     Represents a single attempt of a child completing a lesson.
