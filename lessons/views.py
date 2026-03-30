@@ -19,18 +19,25 @@ class LessonListAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         """
-        Returns lessons filtered by age and search query parameters.
+        Optionally filter lessons by age category and search term.
         """
         queryset = Lesson.objects.all()
 
         age = self.request.query_params.get("age")
         if age:
             queryset = queryset.filter(age_category=age)
+
         search = self.request.query_params.get("search")
         if search:
             queryset = queryset.filter(title__icontains=search)
 
         return queryset
+
+    def get_serializer_context(self):
+        """
+        Provide additional context to the serializer.
+        """
+        return {"request": self.request}
 
 
 class LessonDetailAPIView(generics.RetrieveAPIView):
