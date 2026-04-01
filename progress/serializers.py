@@ -3,7 +3,7 @@ Serializers for lesson progress and exercise results.
 """
 
 from rest_framework import serializers
-from .models import LessonSession, ExerciseResult
+from .models import LessonSession, ExerciseResult, Achievement
 
 
 class LessonSessionSerializer(serializers.ModelSerializer):
@@ -34,3 +34,15 @@ class ExerciseResultSerializer(serializers.ModelSerializer):
             "recorded_audio",
             "accuracy_score",
         ]
+
+
+class AchievementSerializer(serializers.ModelSerializer):
+    """
+    Serializer for achievement objects.
+    """
+    class Meta:
+        """
+        Meta configuration for AchievementSerializer.
+        """
+        model = Achievement
+        fields = "__all__"

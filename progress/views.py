@@ -4,14 +4,15 @@ API views for managing lesson progress and exercise results.
 
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from rest_framework import status
+from rest_framework import status, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from exercises.models import Exercise
 from lessons.models import Lesson
 from speech.services import calculate_accuracy_from_audio
-from .models import LessonSession, ExerciseResult
+from .models import LessonSession, ExerciseResult, Achievement, ChildAchievement
+from .serializers import AchievementSerializer
 
 
 class StartLessonAPIView(APIView):
@@ -92,12 +93,20 @@ class SubmitExerciseResultAPIView(APIView):
 
         is_passed = accuracy_score >= required_score
 
+        previous_attempts = ExerciseResult.objects.filter(
+            session=session,
+            exercise=exercise
+        ).count()
+
+        attempt_number = previous_attempts + 1
+
         ExerciseResult.objects.create(
             session=session,
             exercise=exercise,
             recorded_audio=audio_file,
             accuracy_score=accuracy_score,
             is_passed=is_passed,
+            attempt_number=attempt_number
         )
 
         return Response({
@@ -106,6 +115,7 @@ class SubmitExerciseResultAPIView(APIView):
             "accuracy": analysis["accuracy"],
             "fluency": analysis["fluency"],
             "completeness": analysis["completeness"],
+            "attempt_number": attempt_number
         })
 
 
@@ -123,6 +133,17 @@ class CompleteLessonAPIView(APIView):
 
         results = session.results.all()
 
+        total_points = 0
+
+        for result in results:
+            if not result.is_passed:
+                continue
+
+            if result.attempt_number == 1:
+                total_points += 2
+            elif result.attempt_number == 2:
+                total_points += 1
+
         if not results.exists():
             return Response({"error": "No results"}, status=400)
 
@@ -131,9 +152,69 @@ class CompleteLessonAPIView(APIView):
         session.average_score = average
         session.is_completed = True
         session.completed_at = timezone.now()
+        child = session.child
+        child.points += total_points
+        child.save()
         session.save()
+
+        new_achievements = []
+        achievements = Achievement.objects.all()
+
+        for ach in achievements:
+            if child.points >= ach.required_points:
+                _, created = ChildAchievement.objects.get_or_create(
+                    child=child,
+                    achievement=ach
+                )
+
+                if created:
+                    new_achievements.append({
+                        "id": ach.id,
+                        "name": ach.name,
+                        "image": ach.image.url
+                    })
 
         return Response({
             "average_score": average,
-            "completed": True
+            "completed": True,
+            "earned_points": total_points,
+            "new_achievements": new_achievements
         })
+
+
+class AchievementListAPIView(generics.ListAPIView):
+    """
+    API view for listing all achievements and their unlocked status for the current user's child.
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = AchievementSerializer
+
+    def get_queryset(self):
+        """
+        Returns all achievements.
+        """
+        return Achievement.objects.all()
+
+    def list(self, request, *args, **kwargs):
+        """
+        Returns a list of all achievements with their unlocked status for the current user's child.
+        """
+        queryset = self.get_queryset()
+        child = request.user.children.first()
+
+        unlocked_ids = set(
+            ChildAchievement.objects.filter(child=child)
+            .values_list("achievement_id", flat=True)
+        )
+
+        data = []
+        for ach in queryset:
+            data.append({
+                "id": ach.id,
+                "name": ach.name,
+                "image": ach.image.url,
+                "required_points": ach.required_points,
+                "unlocked": ach.id in unlocked_ids
+            })
+
+        return Response(data)
