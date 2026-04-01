@@ -53,6 +53,8 @@ class ExerciseResult(models.Model):
 
     recorded_audio = models.FileField(upload_to="recordings/")
 
+    attempt_number = models.PositiveIntegerField(default=1)
+
     accuracy_score = models.FloatField()
     is_passed = models.BooleanField(default=False)
 
@@ -60,3 +62,39 @@ class ExerciseResult(models.Model):
 
     def __str__(self):
         return f"{self.exercise.title} - {self.accuracy_score}%"
+
+
+class Achievement(models.Model):
+    """
+    Model representing an achievement that can be unlocked by a child.
+    """
+    name = models.CharField(max_length=255)
+    image = models.ImageField(upload_to="achievements/")
+    required_points = models.PositiveIntegerField()
+
+    def __str__(self):
+        return self.name
+
+
+class ChildAchievement(models.Model):
+    """"
+    Model representing the unlocking of an achievement by a child.
+    """
+    child = models.ForeignKey(
+        ChildProfile,
+        on_delete=models.CASCADE,
+        related_name="achievements"
+    )
+
+    achievement = models.ForeignKey(
+        Achievement,
+        on_delete=models.CASCADE
+    )
+
+    unlocked_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        """
+        Meta configuration for ChildAchievement.
+        """
+        unique_together = ("child", "achievement")

@@ -6,11 +6,13 @@ from django.urls import path
 from .views import (
     StartLessonAPIView,
     SubmitExerciseResultAPIView,
-    CompleteLessonAPIView
+    CompleteLessonAPIView,
+    AchievementListAPIView
 )
 
 urlpatterns = [
     path("start/<int:lesson_id>/", StartLessonAPIView.as_view()),
     path("submit/", SubmitExerciseResultAPIView.as_view()),
     path("complete/<int:session_id>/", CompleteLessonAPIView.as_view()),
+    path("achievements/", AchievementListAPIView.as_view()),
 ]

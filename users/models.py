@@ -78,5 +78,7 @@ class ChildProfile(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(3)],
     )
 
+    points = models.PositiveIntegerField(default=0)
+
     def __str__(self):
         return self.name or f"Child of {self.parent.email}"
