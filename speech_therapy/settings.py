@@ -48,7 +48,6 @@ INSTALLED_APPS = [
     "lessons",
     "exercises",
     "progress",
-    "speech",
 ]
 
 MIDDLEWARE = [

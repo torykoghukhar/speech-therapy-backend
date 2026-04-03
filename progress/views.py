@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from exercises.models import Exercise
 from lessons.models import Lesson
-from speech.services import calculate_accuracy_from_audio
+from .services import calculate_accuracy_from_audio
 from .models import LessonSession, ExerciseResult, Achievement, ChildAchievement
 from .serializers import AchievementSerializer
 
