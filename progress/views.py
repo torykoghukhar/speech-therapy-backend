@@ -26,7 +26,10 @@ class StartLessonAPIView(APIView):
         Creates a new lesson session for the current user.
         """
         child = request.user.children.first()
-        lesson = Lesson.objects.get(id=lesson_id)
+        if not child:
+            return Response({"error": "Child not found"}, status=400)
+
+        lesson = get_object_or_404(Lesson, id=lesson_id)
 
         session = LessonSession.objects.create(
             child=child,
@@ -112,9 +115,9 @@ class SubmitExerciseResultAPIView(APIView):
         return Response({
             "passed": is_passed,
             "required_score": required_score,
-            "accuracy": analysis["accuracy"],
-            "fluency": analysis["fluency"],
-            "completeness": analysis["completeness"],
+            "accuracy": analysis.get("accuracy", 0),
+            "fluency": analysis.get("fluency", 0),
+            "completeness": analysis.get("completeness", 0),
             "attempt_number": attempt_number
         })
 

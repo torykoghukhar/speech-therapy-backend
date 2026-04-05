@@ -11,8 +11,8 @@ from .views import (
 )
 
 urlpatterns = [
-    path("start/<int:lesson_id>/", StartLessonAPIView.as_view()),
-    path("submit/", SubmitExerciseResultAPIView.as_view()),
-    path("complete/<int:session_id>/", CompleteLessonAPIView.as_view()),
-    path("achievements/", AchievementListAPIView.as_view()),
+    path("start/<int:lesson_id>/", StartLessonAPIView.as_view(), name="start-lesson"),
+    path("submit/", SubmitExerciseResultAPIView.as_view(), name="submit-exercise-result"),
+    path("complete/<int:session_id>/", CompleteLessonAPIView.as_view(), name="complete-lesson"),
+    path("achievements/", AchievementListAPIView.as_view(), name="achievement-list"),
 ]
