@@ -105,7 +105,8 @@ def phoneme_analysis(expected, recognized):
         })
 
         if is_error:
-            errors.append(char)
+            if char.strip() and char.isalpha():
+                errors.append(char)
 
     return result, list(set(errors))
 
