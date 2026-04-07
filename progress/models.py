@@ -60,6 +60,11 @@ class ExerciseResult(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    fluency = models.FloatField(null=True, blank=True)
+    completeness = models.FloatField(null=True, blank=True)
+    recognized_text = models.TextField(blank=True, null=True)
+    weak_phonemes = models.JSONField(default=list, blank=True)
+
     def __str__(self):
         return f"{self.exercise.title} - {self.accuracy_score}%"
 

@@ -51,7 +51,9 @@ def mock_analysis():
         mock.return_value = {
             "accuracy": 90,
             "fluency": 85,
-            "completeness": 80
+            "completeness": 80,
+            "recognized_text": "test",
+            "weak_phonemes": ["s", "t"]
         }
         yield mock
 

@@ -2,6 +2,9 @@
 API views for managing lesson progress and exercise results.
 """
 
+from collections import Counter
+from django.db.models import Avg
+from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status, generics
@@ -13,6 +16,7 @@ from lessons.models import Lesson
 from .services import calculate_accuracy_from_audio
 from .models import LessonSession, ExerciseResult, Achievement, ChildAchievement
 from .serializers import AchievementSerializer
+from .utils import get_period_filter
 
 
 class StartLessonAPIView(APIView):
@@ -109,7 +113,11 @@ class SubmitExerciseResultAPIView(APIView):
             recorded_audio=audio_file,
             accuracy_score=accuracy_score,
             is_passed=is_passed,
-            attempt_number=attempt_number
+            attempt_number=attempt_number,
+            fluency=analysis.get("fluency"),
+            completeness=analysis.get("completeness"),
+            recognized_text=analysis.get("recognized_text", ""),
+            weak_phonemes=analysis.get("weak_phonemes", []),
         )
 
         return Response({
@@ -221,3 +229,144 @@ class AchievementListAPIView(generics.ListAPIView):
             })
 
         return Response(data)
+
+
+class ProgressStatsAPIView(APIView):
+    """
+    API view for retrieving progress statistics for the current user's child.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        Returns aggregated progress statistics based on the child's completed lesson sessions.
+        """
+        child = request.user.children.first()
+        if not child:
+            return Response({"error": "Child not found"}, status=400)
+
+        period = request.GET.get("period", "7d")
+        date_from = get_period_filter(period)
+
+        sessions = self._get_sessions(child, date_from)
+        results = ExerciseResult.objects.filter(session__in=sessions)
+
+        return Response({
+            "summary": self._get_summary(child, sessions, results),
+            "progress": self._get_progress(sessions),
+            "attempts": self._get_attempts(results),
+            "weak_phonemes": self._get_weak_phonemes(results),
+            "lesson_time": self._get_lesson_times(sessions),
+        })
+
+    def _get_sessions(self, child, date_from):
+        """
+        Returns the completed lesson sessions for the given child within the specified date range.
+        """
+        sessions = child.lesson_sessions.filter(
+            is_completed=True,
+            completed_at__isnull=False
+        )
+
+        if date_from:
+            sessions = sessions.filter(
+                completed_at__date__gte=date_from.date()
+            )
+
+        return sessions
+
+    def _get_summary(self, child, sessions, results):
+        """
+        Returns a summary of the child's progress based on the completed sessions.
+        """
+        avg_score = sessions.aggregate(avg=Avg("average_score"))["avg"] or 0
+
+        total_results = results.count()
+        passed_results = results.filter(is_passed=True).count()
+
+        success_rate = (
+            passed_results / total_results if total_results else 0
+        )
+
+        avg_attempts = results.aggregate(
+            avg=Avg("attempt_number")
+        )["avg"] or 0
+
+        return {
+            "total_points": child.points,
+            "average_score": avg_score,
+            "success_rate": success_rate,
+            "avg_attempts": avg_attempts,
+        }
+
+    def _get_progress(self, sessions):
+        """
+        Returns the progress of the child based on the completed sessions.
+        """
+        queryset = (
+            sessions
+            .annotate(date=TruncDate("completed_at"))
+            .values("date")
+            .annotate(score=Avg("average_score"))
+            .order_by("date")
+        )
+
+        grouped = {}
+
+        for item in queryset:
+            grouped.setdefault(item["date"], []).append(item["score"])
+
+        return [
+            {
+                "date": str(date),
+                "score": sum(scores) / len(scores),
+            }
+            for date, scores in sorted(grouped.items())
+        ]
+
+    def _get_attempts(self, results):
+        """
+        Returns the average number of attempts for each exercise based on the results.
+        """
+        queryset = (
+            results
+            .values("exercise__title")
+            .annotate(avg_attempts=Avg("attempt_number"))
+            .order_by("-avg_attempts")[:10]
+        )
+
+        return [
+            {
+                "exercise": item["exercise__title"],
+                "avg_attempts": item["avg_attempts"],
+            }
+            for item in queryset
+        ]
+
+    def _get_weak_phonemes(self, results):
+        """
+        Returns the most common weak phonemes based on the exercise results.
+        """
+        counter = Counter()
+
+        for r in results:
+            if r.weak_phonemes:
+                for p in r.weak_phonemes:
+                    counter[p] += 1
+
+        return [
+            {"phoneme": p, "count": c}
+            for p, c in counter.most_common(10)
+        ]
+
+    def _get_lesson_times(self, sessions):
+        """
+        Returns the duration of each completed lesson session.
+        """
+        return [
+            {
+                "lesson": s.lesson.title,
+                "duration": (s.completed_at - s.started_at).total_seconds(),
+            }
+            for s in sessions
+        ]
