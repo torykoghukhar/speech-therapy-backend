@@ -3,20 +3,25 @@ API views for managing lesson progress and exercise results.
 """
 
 from collections import Counter
+
 from django.db.models import Avg
 from django.db.models.functions import TruncDate
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+
 from rest_framework import status, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+
 from exercises.models import Exercise
 from lessons.models import Lesson
 from .services import calculate_accuracy_from_audio
 from .models import LessonSession, ExerciseResult, Achievement, ChildAchievement
 from .serializers import AchievementSerializer
 from .utils import get_period_filter
+from .pdf_service import build_progress_pdf
 
 
 class StartLessonAPIView(APIView):
@@ -243,7 +248,9 @@ class ProgressStatsAPIView(APIView):
         """
         child = request.user.children.first()
         if not child:
-            return Response({"error": "Child not found"}, status=400)
+            return Response({
+                "status": "no_child"
+            })
 
         period = request.GET.get("period", "7d")
         date_from = get_period_filter(period)
@@ -251,7 +258,18 @@ class ProgressStatsAPIView(APIView):
         sessions = self._get_sessions(child, date_from)
         results = ExerciseResult.objects.filter(session__in=sessions)
 
+        if not sessions.exists():
+            return Response({
+                "status": "no_data",
+                "summary": self._get_summary(child, sessions, results),
+                "progress": [],
+                "attempts": [],
+                "weak_phonemes": [],
+                "lesson_time": [],
+            })
+
         return Response({
+            "status": "ok",
             "summary": self._get_summary(child, sessions, results),
             "progress": self._get_progress(sessions),
             "attempts": self._get_attempts(results),
@@ -370,3 +388,27 @@ class ProgressStatsAPIView(APIView):
             }
             for s in sessions
         ]
+
+
+class ProgressPDFAPIView(APIView):
+    """
+    API view for downloading the child's progress report as a PDF.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        Generates a PDF report of the child's progress and returns it as a downloadable file.
+        """
+        child = request.user.children.first()
+        if not child:
+            return Response({"error": "Child not found"}, status=400)
+
+        data = ProgressStatsAPIView().get(request).data
+
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="progress.pdf"'
+
+        build_progress_pdf(response, data)
+
+        return response

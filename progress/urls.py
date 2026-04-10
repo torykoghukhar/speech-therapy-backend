@@ -9,6 +9,7 @@ from .views import (
     CompleteLessonAPIView,
     AchievementListAPIView,
     ProgressStatsAPIView,
+    ProgressPDFAPIView,
 )
 
 urlpatterns = [
@@ -17,4 +18,5 @@ urlpatterns = [
     path("complete/<int:session_id>/", CompleteLessonAPIView.as_view(), name="complete-lesson"),
     path("achievements/", AchievementListAPIView.as_view(), name="achievement-list"),
     path("stats/", ProgressStatsAPIView.as_view(), name="progress-stats"),
+    path("pdf/", ProgressPDFAPIView.as_view(), name="progress-pdf"),
 ]

@@ -184,3 +184,5 @@ LOGGING = {
         "level": "INFO",
     },
 }
+
+font_path = os.path.join(BASE_DIR, "fonts", "DejaVuSans.ttf")
