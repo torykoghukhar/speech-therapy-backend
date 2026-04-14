@@ -13,6 +13,8 @@ from .views import (
     ChildProfileDeleteAPIView,
     ChildProfileDetailAPIView,
     UserProfileAPIView,
+    TherapistListAPIView,
+    TherapistChildrenAPIView,
 )
 
 urlpatterns = [
@@ -40,4 +42,6 @@ urlpatterns = [
         name="child-profile-delete"),
     path("profile/", UserProfileAPIView.as_view(), name="user-profile"),
     path("child/", ChildProfileDetailAPIView.as_view(), name="child-profile-detail"),
+    path("therapists/", TherapistListAPIView.as_view(), name="therapist-list"),
+    path("therapist/children/", TherapistChildrenAPIView.as_view(), name="therapist-children"),
 ]
