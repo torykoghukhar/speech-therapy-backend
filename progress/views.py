@@ -2,10 +2,6 @@
 API views for managing lesson progress and exercise results.
 """
 
-from collections import Counter
-
-from django.db.models import Avg
-from django.db.models.functions import TruncDate
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -17,11 +13,13 @@ from rest_framework.permissions import IsAuthenticated
 
 from exercises.models import Exercise
 from lessons.models import Lesson
-from .services import calculate_accuracy_from_audio
+from users.models import UserProfile, ChildProfile
+from .services.analysis_service import calculate_accuracy_from_audio
 from .models import LessonSession, ExerciseResult, Achievement, ChildAchievement
 from .serializers import AchievementSerializer
 from .utils import get_period_filter
-from .pdf_service import build_progress_pdf
+from .services.pdf_service import build_progress_pdf
+from .services.stats_service import ProgressStatsService
 
 
 class StartLessonAPIView(APIView):
@@ -246,22 +244,44 @@ class ProgressStatsAPIView(APIView):
         """
         Returns aggregated progress statistics based on the child's completed lesson sessions.
         """
-        child = request.user.children.first()
-        if not child:
-            return Response({
-                "status": "no_child"
-            })
+        user = request.user
+
+        if user.profile.role == UserProfile.SPEECH_THERAPIST:
+            child_id = request.GET.get("child_id")
+
+            if not child_id:
+                return Response({
+                    "status": "no_child_selected"
+                })
+
+            child = ChildProfile.objects.filter(
+                id=child_id,
+                speech_therapist=user
+            ).first()
+
+            if not child:
+                return Response({
+                    "status": "no_child"
+                })
+
+        else:
+            child = user.children.first()
+
+            if not child:
+                return Response({
+                    "status": "no_child"
+                })
 
         period = request.GET.get("period", "7d")
         date_from = get_period_filter(period)
 
-        sessions = self._get_sessions(child, date_from)
+        sessions = ProgressStatsService.get_sessions(child, date_from)
         results = ExerciseResult.objects.filter(session__in=sessions)
 
         if not sessions.exists():
             return Response({
                 "status": "no_data",
-                "summary": self._get_summary(child, sessions, results),
+                "summary": ProgressStatsService.get_summary(child, sessions, results),
                 "progress": [],
                 "attempts": [],
                 "weak_phonemes": [],
@@ -270,124 +290,12 @@ class ProgressStatsAPIView(APIView):
 
         return Response({
             "status": "ok",
-            "summary": self._get_summary(child, sessions, results),
-            "progress": self._get_progress(sessions),
-            "attempts": self._get_attempts(results),
-            "weak_phonemes": self._get_weak_phonemes(results),
-            "lesson_time": self._get_lesson_times(sessions),
+            "summary": ProgressStatsService.get_summary(child, sessions, results),
+            "progress": ProgressStatsService.get_progress(sessions),
+            "attempts": ProgressStatsService.get_attempts(results),
+            "weak_phonemes": ProgressStatsService.get_weak_phonemes(results),
+            "lesson_time": ProgressStatsService.get_lesson_times(sessions),
         })
-
-    def _get_sessions(self, child, date_from):
-        """
-        Returns the completed lesson sessions for the given child within the specified date range.
-        """
-        sessions = child.lesson_sessions.filter(
-            is_completed=True,
-            completed_at__isnull=False
-        )
-
-        if date_from:
-            sessions = sessions.filter(
-                completed_at__date__gte=date_from.date()
-            )
-
-        return sessions
-
-    def _get_summary(self, child, sessions, results):
-        """
-        Returns a summary of the child's progress based on the completed sessions.
-        """
-        avg_score = sessions.aggregate(avg=Avg("average_score"))["avg"] or 0
-
-        total_results = results.count()
-        passed_results = results.filter(is_passed=True).count()
-
-        success_rate = (
-            passed_results / total_results if total_results else 0
-        )
-
-        avg_attempts = results.aggregate(
-            avg=Avg("attempt_number")
-        )["avg"] or 0
-
-        return {
-            "total_points": child.points,
-            "average_score": avg_score,
-            "success_rate": success_rate,
-            "avg_attempts": avg_attempts,
-        }
-
-    def _get_progress(self, sessions):
-        """
-        Returns the progress of the child based on the completed sessions.
-        """
-        queryset = (
-            sessions
-            .annotate(date=TruncDate("completed_at"))
-            .values("date")
-            .annotate(score=Avg("average_score"))
-            .order_by("date")
-        )
-
-        grouped = {}
-
-        for item in queryset:
-            grouped.setdefault(item["date"], []).append(item["score"])
-
-        return [
-            {
-                "date": str(date),
-                "score": sum(scores) / len(scores),
-            }
-            for date, scores in sorted(grouped.items())
-        ]
-
-    def _get_attempts(self, results):
-        """
-        Returns the average number of attempts for each exercise based on the results.
-        """
-        queryset = (
-            results
-            .values("exercise__title")
-            .annotate(avg_attempts=Avg("attempt_number"))
-            .order_by("-avg_attempts")[:10]
-        )
-
-        return [
-            {
-                "exercise": item["exercise__title"],
-                "avg_attempts": item["avg_attempts"],
-            }
-            for item in queryset
-        ]
-
-    def _get_weak_phonemes(self, results):
-        """
-        Returns the most common weak phonemes based on the exercise results.
-        """
-        counter = Counter()
-
-        for r in results:
-            if r.weak_phonemes:
-                for p in r.weak_phonemes:
-                    counter[p] += 1
-
-        return [
-            {"phoneme": p, "count": c}
-            for p, c in counter.most_common(10)
-        ]
-
-    def _get_lesson_times(self, sessions):
-        """
-        Returns the duration of each completed lesson session.
-        """
-        return [
-            {
-                "lesson": s.lesson.title,
-                "duration": (s.completed_at - s.started_at).total_seconds(),
-            }
-            for s in sessions
-        ]
 
 
 class ProgressPDFAPIView(APIView):
@@ -400,11 +308,40 @@ class ProgressPDFAPIView(APIView):
         """
         Generates a PDF report of the child's progress and returns it as a downloadable file.
         """
-        child = request.user.children.first()
+        user = request.user
+        role = user.profile.role
+
+        if role == UserProfile.SPEECH_THERAPIST:
+            child_id = request.GET.get("child_id")
+
+            if not child_id:
+                return Response({"error": "Child not selected"}, status=400)
+
+            child = ChildProfile.objects.filter(id=child_id).first()
+
+        else:
+            child = user.children.first()
+
         if not child:
             return Response({"error": "Child not found"}, status=400)
 
-        data = ProgressStatsAPIView().get(request).data
+        period = request.GET.get("period", "7d")
+        date_from = get_period_filter(period)
+
+        sessions = ProgressStatsService.get_sessions(child, date_from)
+        results = ExerciseResult.objects.filter(session__in=sessions)
+
+        if not sessions.exists():
+            return Response({"error": "No data for PDF"}, status=400)
+
+        data = {
+            "status": "ok",
+            "summary": ProgressStatsService.get_summary(child, sessions, results),
+            "progress": ProgressStatsService.get_progress(sessions),
+            "attempts": ProgressStatsService.get_attempts(results),
+            "weak_phonemes": ProgressStatsService.get_weak_phonemes(results),
+            "lesson_time": ProgressStatsService.get_lesson_times(sessions),
+        }
 
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="progress.pdf"'

@@ -185,7 +185,7 @@ class ChildProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChildProfile
         fields = "__all__"
-        read_only_fields = ["parent", "speech_therapist"]
+        read_only_fields = ["parent"]
 
 
 class UserProfileSerializer(serializers.ModelSerializer):

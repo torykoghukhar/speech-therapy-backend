@@ -175,3 +175,69 @@ class UserProfileAPIView(APIView):
             return Response(serializer.data)
 
         return Response(serializer.errors, status=400)
+
+
+class TherapistListAPIView(APIView):
+    """
+    API view for retrieving a list of speech therapists.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        Retrieve a list of speech therapists.
+        """
+        therapists = User.objects.filter(
+            profile__role=UserProfile.SPEECH_THERAPIST
+        )
+
+        data = [
+            {
+                "id": t.id,
+                "name": f"{t.first_name} {t.last_name}".strip(),
+            }
+            for t in therapists
+        ]
+
+        return Response(data)
+
+
+class TherapistChildrenAPIView(APIView):
+    """
+    API view for retrieving a list of children assigned to the authenticated speech therapist.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        Retrieve a list of children assigned to the authenticated speech therapist.
+        """
+        if request.user.profile.role != UserProfile.SPEECH_THERAPIST:
+            return Response({"error": "Not allowed"}, status=403)
+
+        children = ChildProfile.objects.filter(
+            speech_therapist=request.user
+        ).select_related("parent", "parent__profile")
+
+        data = []
+
+        for c in children:
+            contact = None
+
+            if c.parent:
+                profile = getattr(c.parent, "profile", None)
+
+                if profile and profile.phone_number:
+                    contact = profile.phone_number
+                else:
+                    contact = c.parent.email
+
+            data.append({
+                "id": c.id,
+                "name": c.name,
+                "age": c.age,
+                "difficulty": c.difficulty_level,
+                "parent_contact": contact
+            })
+
+        return Response(data)
