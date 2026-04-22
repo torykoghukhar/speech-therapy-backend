@@ -25,3 +25,4 @@ torch==2.3.0
 torchaudio==2.3.0
 soundfile==0.12.1
 reportlab==4.0.8
+stripe

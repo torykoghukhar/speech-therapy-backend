@@ -1,7 +1,9 @@
 """
 Views for speech_therapy.users.views
 """
+import stripe
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 
 from rest_framework import generics, status
@@ -22,6 +24,7 @@ from .serializers import (
 )
 
 User = get_user_model()
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 class RegistrationAPIView(APIView):
@@ -241,3 +244,43 @@ class TherapistChildrenAPIView(APIView):
             })
 
         return Response(data)
+
+
+class CreateCheckoutSessionAPIView(APIView):
+    """API view for creating a Stripe Checkout session for user donations."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """
+        Create a Stripe Checkout session with the selected donation amount
+        and return the session URL for redirection.
+        """
+        amount = request.data.get("amount", 500)
+
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            mode="payment",
+
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "usd",
+                        "product_data": {
+                            "name": "Support SoundSteps 💛",
+                        },
+                        "unit_amount": amount,
+                    },
+                    "quantity": 1,
+                }
+            ],
+
+            metadata={
+                "user_id": request.user.id
+            },
+
+            success_url=f"{settings.DOMAIN}/profile?success=true",
+            cancel_url=f"{settings.DOMAIN}/profile?canceled=true",
+        )
+
+        return Response({"url": session.url})
