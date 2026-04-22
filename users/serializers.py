@@ -3,6 +3,7 @@ Serializers for the users app.
 """
 
 from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.models import Group
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
@@ -73,6 +74,14 @@ class RegistrationSerializer(serializers.Serializer):
             phone_number=validated_data["phone_number"],
             birth_date=validated_data["birth_date"],
         )
+
+        if role == UserProfile.SPEECH_THERAPIST:
+            user.is_staff = True
+
+            group, _ = Group.objects.get_or_create(name="SpeechTherapists")
+            user.groups.add(group)
+
+            user.save()
 
         return user
 

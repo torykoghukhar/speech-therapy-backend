@@ -82,3 +82,22 @@ class ChildProfile(models.Model):
 
     def __str__(self):
         return self.name or f"Child of {self.parent.email}"
+
+
+class Donation(models.Model):
+    """
+    Model representing a user's donation made through Stripe.
+    """
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="donations"
+    )
+
+    amount = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    stripe_session_id = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"{self.user.email} - ${self.amount / 100}"

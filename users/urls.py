@@ -15,7 +15,9 @@ from .views import (
     UserProfileAPIView,
     TherapistListAPIView,
     TherapistChildrenAPIView,
+    CreateCheckoutSessionAPIView,
 )
+from .webhooks import stripe_webhook
 
 urlpatterns = [
     path("register/", RegistrationAPIView.as_view(), name="register-page"),
@@ -44,4 +46,6 @@ urlpatterns = [
     path("child/", ChildProfileDetailAPIView.as_view(), name="child-profile-detail"),
     path("therapists/", TherapistListAPIView.as_view(), name="therapist-list"),
     path("therapist/children/", TherapistChildrenAPIView.as_view(), name="therapist-children"),
+    path('payments/create-checkout/', CreateCheckoutSessionAPIView.as_view()),
+    path("stripe/webhook/", stripe_webhook),
 ]

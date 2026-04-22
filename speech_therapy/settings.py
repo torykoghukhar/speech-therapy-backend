@@ -186,3 +186,10 @@ LOGGING = {
 }
 
 font_path = os.path.join(BASE_DIR, "fonts", "DejaVuSans.ttf")
+
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_PUBLIC_KEY = os.getenv("STRIPE_PUBLIC_KEY")
+
+DOMAIN = "http://localhost:5173"
+
+STRIPE_WEBHOOK_SECRET = "whsec_718ae2fd3a7c29d96e4e5410fe013f5b4ff59a6f51c41c47d8ba40e830f3cddd"
