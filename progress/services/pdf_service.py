@@ -43,12 +43,12 @@ def _add_header(elements, styles):
     """
     Adds the header section to the PDF.
     """
-    elements.append(Paragraph("Child Progress Report", styles['Title']))
+    elements.append(Paragraph("Звіт про прогрес дитини", styles['Title']))
     elements.append(Spacer(1, 10))
 
     elements.append(Paragraph(
-        "This report provides an overview of the child's learning progress, "
-        "including performance, consistency, and pronunciation difficulties.",
+        "Цей звіт надає огляд навчального прогресу дитини, включаючи "
+        "успішність, стабільність та труднощі з вимовою.",
         styles['Normal']
     ))
     elements.append(Spacer(1, 20))
@@ -58,22 +58,22 @@ def _add_summary(elements, styles, summary):
     """
     Adds the summary section to the PDF.
     """
-    elements.append(Paragraph("1. Summary", styles['Heading2']))
+    elements.append(Paragraph("1. Підсумок", styles['Heading2']))
     elements.append(Spacer(1, 10))
 
     table = Table([
-        ["Metric", "Value"],
-        ["Total Points", summary["total_points"]],
-        ["Average Score", f"{summary['average_score']:.1f}%"],
-        ["Success Rate", f"{summary['success_rate'] * 100:.0f}%"],
-        ["Average Attempts", f"{summary['avg_attempts']:.2f}"],
+        ["Показник", "Значення"],
+        ["Загальна кількість балів", summary["total_points"]],
+        ["Середній бал", f"{summary['average_score']:.1f}%"],
+        ["Рівень успішності", f"{summary['success_rate'] * 100:.0f}%"],
+        ["Середня кількість спроб", f"{summary['avg_attempts']:.2f}"],
     ])
 
     table.setStyle(_table_style())
 
     elements.append(Paragraph(
-        "This section summarizes the overall performance. "
-        "A higher score and success rate indicate better pronunciation accuracy.",
+        "У цьому розділі наведено загальний підсумок результатів. "
+        "Вищі показники бала та успішності свідчать про кращу точність вимови.",
         styles['Normal']
     ))
     elements.append(Spacer(1, 10))
@@ -85,23 +85,23 @@ def _add_phonemes(elements, styles, phonemes):
     """
     Adds the problem sounds section to the PDF.
     """
-    elements.append(Paragraph("2. Problem Sounds", styles['Heading2']))
+    elements.append(Paragraph("2. Проблемні звуки", styles['Heading2']))
     elements.append(Spacer(1, 10))
 
-    data = [["Sound", "Occurrences"]]
+    data = [["Звук", "Кількість випадків"]]
 
     if phonemes:
         for p in phonemes:
             data.append([p["phoneme"], p["count"]])
     else:
-        data.append(["None", "0"])
+        data.append(["Немає", "0"])
 
     table = Table(data)
     table.setStyle(_table_style())
 
     elements.append(Paragraph(
-        "These sounds were identified as challenging during exercises. "
-        "It is recommended to practice them more frequently.",
+        "Ці звуки були визначені як складні під час виконання вправ. "
+        "Рекомендується частіше їх відпрацьовувати.",
         styles['Normal']
     ))
     elements.append(Spacer(1, 10))
@@ -113,10 +113,10 @@ def _add_progress(elements, styles, progress):
     """
     Adds the progress over time section to the PDF.
     """
-    elements.append(Paragraph("3. Progress Over Time", styles['Heading2']))
+    elements.append(Paragraph("3. Прогрес з часом", styles['Heading2']))
     elements.append(Spacer(1, 10))
 
-    data = [["Date", "Score"]]
+    data = [["Дата", "Бал"]]
 
     for p in progress:
         data.append([p["date"], f"{p['score']:.1f}%"])
@@ -125,8 +125,8 @@ def _add_progress(elements, styles, progress):
     table.setStyle(_table_style())
 
     elements.append(Paragraph(
-        "This section shows how the child's performance changes over time. "
-        "Consistent improvement indicates effective learning.",
+        "У цьому розділі показано, як змінюються результати дитини з часом. "
+        "Стабільне покращення свідчить про ефективне навчання.",
         styles['Normal']
     ))
     elements.append(Spacer(1, 10))
@@ -138,10 +138,10 @@ def _add_attempts(elements, styles, attempts):
     """
     Adds the most difficult exercises section to the PDF.
     """
-    elements.append(Paragraph("4. Most Difficult Exercises", styles['Heading2']))
+    elements.append(Paragraph("4. Найскладніші вправи", styles['Heading2']))
     elements.append(Spacer(1, 10))
 
-    data = [["Exercise", "Avg Attempts"]]
+    data = [["Вправа", "Середня кількість спроб"]]
 
     if attempts:
         for a in attempts:
@@ -150,14 +150,14 @@ def _add_attempts(elements, styles, attempts):
                 f"{a['avg_attempts']:.2f}"
             ])
     else:
-        data.append(["None", "0"])
+        data.append(["Немає", "0"])
 
     table = Table(data)
     table.setStyle(_table_style())
 
     elements.append(Paragraph(
-        "This section shows exercises that required the most repetitions. "
-        "Higher values indicate greater difficulty.",
+        "У цьому розділі наведено вправи, які потребували найбільшої "
+        "кількості повторень. Вищі значення означають вищу складність.",
         styles['Normal']
     ))
 
@@ -171,7 +171,7 @@ def _add_footer(elements, styles):
     Adds the footer section to the PDF.
     """
     elements.append(Paragraph(
-        "Report generated automatically by the Speech Therapy App.",
+        "Звіт автоматично згенерований застосунком SoundSteps.",
         styles['Italic']
     ))
 
