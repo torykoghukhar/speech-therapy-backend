@@ -110,3 +110,43 @@ def lesson_env(auth_client, session, exercise, child):
         "exercise": exercise,
         "child": child,
     }
+
+
+@pytest.fixture
+def stats_url():
+    """
+    Return stats endpoint URL.
+    """
+    return reverse("progress-stats")
+
+
+@pytest.fixture
+def complete_session():
+    """
+    Mark session as completed with score.
+    """
+    def _complete(session, score=80):
+        session.is_completed = True
+        session.completed_at = session.started_at
+        session.average_score = score
+        session.save()
+        return session
+    return _complete
+
+
+@pytest.fixture
+def therapist_user(user):
+    """
+    Convert user into therapist.
+    """
+    user.profile.role = "speech_therapist"
+    user.profile.save()
+    return user
+
+
+@pytest.fixture
+def pdf_url():
+    """
+    Return PDF endpoint URL.
+    """
+    return reverse("progress-pdf")
