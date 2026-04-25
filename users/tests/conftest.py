@@ -176,3 +176,43 @@ def mock_send_email():
     """
     with patch("users.serializers.send_reset_email.delay") as mock:
         yield mock
+
+
+@pytest.fixture
+def mock_stripe_session():
+    """
+    Mock Stripe checkout session creation.
+    """
+    with patch("stripe.checkout.Session.create") as mock:
+        mock.return_value = type("Session", (), {
+            "url": "https://stripe.test/session/123"
+        })()
+        yield mock
+
+
+@pytest.fixture
+def mock_stripe_webhook_event():
+    """
+    Mock Stripe webhook event construction.
+    """
+    with patch("stripe.Webhook.construct_event") as mock:
+        yield mock
+
+
+@pytest.fixture
+def stripe_event_factory():
+    """
+    Factory fixture for creating mock Stripe webhook events with customizable attributes.
+    """
+    def _event(event_type="checkout.session.completed", user_id="1", amount=500):
+        return {
+            "type": event_type,
+            "data": {
+                "object": type("Session", (), {
+                    "id": "cs_test_123",
+                    "metadata": {"user_id": user_id},
+                    "amount_total": amount
+                })()
+            }
+        }
+    return _event

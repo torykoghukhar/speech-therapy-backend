@@ -46,6 +46,10 @@ urlpatterns = [
     path("child/", ChildProfileDetailAPIView.as_view(), name="child-profile-detail"),
     path("therapists/", TherapistListAPIView.as_view(), name="therapist-list"),
     path("therapist/children/", TherapistChildrenAPIView.as_view(), name="therapist-children"),
-    path('payments/create-checkout/', CreateCheckoutSessionAPIView.as_view()),
+    path(
+        'payments/create-checkout/',
+        CreateCheckoutSessionAPIView.as_view(),
+        name='create-checkout-session'
+        ),
     path("stripe/webhook/", stripe_webhook),
 ]

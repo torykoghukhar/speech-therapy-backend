@@ -8,7 +8,7 @@ import uuid
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
-from users.models import ChildProfile
+from users.models import ChildProfile, UserProfile
 from exercises.models import Exercise
 from lessons.models import Lesson
 from progress.models import LessonSession
@@ -21,11 +21,18 @@ def user(db):  # pylint: disable=unused-argument
     """
     Create a test user.
     """
-    return User.objects.create_user(
+    user = User.objects.create_user(
         username="testuser",
         email="test@test.com",
         password="test123"
     )
+
+    UserProfile.objects.create(
+        user=user,
+        role=UserProfile.PARENT
+    )
+
+    return user
 
 
 @pytest.fixture
